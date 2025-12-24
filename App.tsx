@@ -6,7 +6,12 @@ import { AppState, DesignConfig } from './types';
 import { Wand2, Loader2, Shuffle, Image as ImageIcon, Sparkles, X, Maximize2 } from 'lucide-react';
 import { ImagePreviewModal } from './components/ImagePreviewModal';
 
+import { Login } from './components/Login';
+
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('site_auth') === 'true';
+  });
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [hasKey, setHasKey] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +28,19 @@ const App: React.FC = () => {
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    checkKeyStatus();
-  }, []);
+    if (isAuthenticated) {
+      checkKeyStatus();
+    }
+  }, [isAuthenticated]);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    localStorage.setItem('site_auth', 'true');
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   useEffect(() => {
     if (referenceImages.length === 0) {
@@ -38,7 +54,8 @@ const App: React.FC = () => {
 
   const checkKeyStatus = async () => {
     try {
-      if (process.env.API_KEY || process.env.GEMINI_API_KEY) {
+      const apiKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+      if (apiKey) {
         setHasKey(true);
         return;
       }

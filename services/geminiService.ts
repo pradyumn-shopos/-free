@@ -29,7 +29,8 @@ export const generateDesign = async (config: DesignConfig): Promise<string> => {
   // Ensure we have an API key selected (although the UI should enforce this)
   // Ensure we have an API key selected (although the UI should enforce this)
   // Check environment variable first
-  if (process.env.API_KEY || process.env.GEMINI_API_KEY) {
+  const envApiKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+  if (envApiKey) {
     // We have a key in env, proceed.
   } else {
     const hasKey = window.aistudio ? await window.aistudio.hasSelectedApiKey() : false;
@@ -39,7 +40,7 @@ export const generateDesign = async (config: DesignConfig): Promise<string> => {
   }
 
   // Create a new instance with the injected key
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: envApiKey || undefined });
 
   console.group("Gemini API Request Debug");
   const parts: Part[] = [];
