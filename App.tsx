@@ -320,7 +320,7 @@ const App: React.FC = () => {
           
           {/* Generation Mode */}
           <div className="space-y-4">
-            <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.muted }}>Generation Mode</label>
+              <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.muted }}>Mode</label>
             <div className="flex p-1 rounded-lg border" style={{ backgroundColor: theme.surface, borderColor: `${theme.border}80` }}>
               <button 
                 onClick={() => setIsBatchMode(false)}
@@ -383,7 +383,7 @@ const App: React.FC = () => {
 
             {/* Model Architecture */}
             <div className="space-y-4">
-              <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.muted }}>Model Architecture</label>
+              <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.muted }}>Model</label>
               <div className="space-y-2">
                 {GEMINI_MODELS.map(m => (
                   <button
@@ -405,7 +405,7 @@ const App: React.FC = () => {
 
             {/* Output Quality */}
             <div className="space-y-4">
-              <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.muted }}>Output Quality</label>
+              <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.muted }}>Quality</label>
               <div className="flex gap-2">
                 {(["1K", "2K", "4K"] as const).map(res => (
                   <button
@@ -427,7 +427,7 @@ const App: React.FC = () => {
             {/* Global Visual Reference */}
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.muted }}>Visual Reference</label>
+                <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.muted }}>Base images</label>
                 {previewUrls.length > 0 && <span className="text-[10px] font-bold" style={{ color: theme.primary }}>{previewUrls.length} Files</span>}
               </div>
               
@@ -470,13 +470,13 @@ const App: React.FC = () => {
                 {Array(batchCount).fill(null).map((_, idx) => (
                   <div key={idx} className="border rounded-2xl p-6 transition-colors flex flex-col shadow-sm" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
                     <div className="flex justify-between items-center mb-3">
-                      <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: theme.muted }}>Variation 0{idx + 1}</span>
+                      <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: theme.muted }}>Variation {idx + 1}</span>
                     </div>
                     <textarea
                       value={batchPrompts[idx] || ''}
                       onChange={(e) => updateBatchPrompt(idx, e.target.value)}
                       className="w-full bg-transparent border-none focus:ring-0 text-lg font-serif min-h-[120px] resize-none leading-relaxed outline-none"
-                      placeholder="Describe this variation in intricate detail..."
+                      placeholder="What's different here?"
                       style={{ color: theme.text }}
                     />
                     
@@ -507,7 +507,7 @@ const App: React.FC = () => {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   className="w-full border focus:ring-0 text-xl md:text-2xl font-serif p-8 pb-10 min-h-[180px] rounded-2xl resize-none leading-relaxed outline-none shadow-sm transition-colors" 
-                  placeholder="Describe your vision in intricate detail..."
+                  placeholder="What do you want to see?"
                   style={{ 
                     backgroundColor: theme.surface, 
                     borderColor: prompt ? theme.primaryLight : theme.border,
@@ -521,7 +521,7 @@ const App: React.FC = () => {
               <button 
                 type="submit" 
                 disabled={appState === AppState.GENERATING || (!isBatchMode && !prompt.trim()) || (isBatchMode && !batchPrompts.some(p => p.trim()))}
-                className="px-10 py-4 rounded-full font-bold uppercase tracking-[0.2rem] text-sm shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-3"
+                className="px-10 py-4 rounded-full font-bold uppercase tracking-[0.2rem] text-sm shadow-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-3 active:scale-95"
                 style={{ backgroundColor: theme.primary, color: theme.onPrimary }}
               >
                 {appState === AppState.GENERATING ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</> : <>Generate ✧</>}
@@ -533,10 +533,10 @@ const App: React.FC = () => {
           {appState === AppState.COMPLETE && generatedImageUrls.length > 0 && (
             <div className="space-y-8 pt-8 border-t" style={{ borderColor: theme.border }}>
               <div className="flex justify-between items-end pb-4 border-b" style={{ borderColor: `${theme.border}80` }}>
-                <h2 className="font-serif text-2xl tracking-tight" style={{ color: theme.text }}>Recent Masterpieces</h2>
+                <h2 className="font-serif text-2xl tracking-tight" style={{ color: theme.text }}>Your generations</h2>
                 {isBatchMode && generatedImageUrls.length > 1 && (
                   <button onClick={downloadAll} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1d1c17] text-[#fef9f1] text-[10px] font-bold uppercase tracking-widest hover:bg-[#ecc246] transition-colors shadow-sm">
-                    <Archive className="w-3.5 h-3.5" /> Download All (.ZIP)
+                    <Archive className="w-3.5 h-3.5" /> Download all (.ZIP)
                   </button>
                 )}
               </div>
@@ -565,7 +565,7 @@ const App: React.FC = () => {
                           onClick={(e) => { e.stopPropagation(); useAsBaseImage(url); }} 
                           className="bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase px-4 py-2.5 rounded-full tracking-widest hover:bg-white/40 transition-colors flex items-center gap-2 text-white border border-white/30"
                         >
-                          Use as Base
+                          Use as base
                         </button>
                       </div>
                     </div>
@@ -598,7 +598,7 @@ const App: React.FC = () => {
             {historyItems.length === 0 ? (
               <div className="text-center py-20" style={{ color: theme.muted }}>
                 <History className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                <p className="text-sm font-bold uppercase tracking-widest">No history yet</p>
+                <p className="text-sm font-bold uppercase tracking-widest">Nothing here yet</p>
               </div>
             ) : (
               historyItems.map((item) => (
@@ -683,7 +683,7 @@ const App: React.FC = () => {
             <div className="lg:col-span-4 p-10 flex flex-col justify-between border-l h-full overflow-y-auto" style={{ backgroundColor: theme.bg, borderColor: theme.border }}>
               <div className="space-y-10">
                 <div className="space-y-4">
-                  <label className="text-[0.6875rem] uppercase tracking-[0.2em] font-bold" style={{ color: theme.primary }}>Original Directive</label>
+                  <label className="text-[0.6875rem] uppercase tracking-[0.2em] font-bold" style={{ color: theme.primary }}>Prompt</label>
                   <p className="font-serif text-xl italic leading-relaxed" style={{ color: theme.text }}>
                     "{activePreviewPrompt}"
                   </p>
@@ -702,11 +702,11 @@ const App: React.FC = () => {
               </div>
               
               <div className="flex flex-col space-y-4 mt-12 pt-8 border-t" style={{ borderColor: theme.border }}>
-                <button onClick={() => downloadImage(generatedImageUrls[activePreviewIndex] || historyItems[activePreviewIndex]?.url, 0)} className="w-full py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 shadow-lg flex justify-center items-center gap-3 hover:-translate-y-1 hover:shadow-xl active:translate-y-0" style={{ backgroundColor: theme.primary, color: theme.onPrimary }}>
-                  <Download className="w-5 h-5" /> Download Master
+                <button onClick={() => downloadImage(generatedImageUrls[activePreviewIndex] || historyItems[activePreviewIndex]?.url, 0)} className="w-full py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 shadow-lg flex justify-center items-center gap-3 hover:-translate-y-1 hover:shadow-xl" style={{ backgroundColor: theme.primary, color: theme.onPrimary }}>
+                  <Download className="w-5 h-5" /> Download
                 </button>
                 <button onClick={() => { useAsBaseImage(generatedImageUrls[activePreviewIndex] || historyItems[activePreviewIndex]?.url); setActivePreviewIndex(null); }} className="w-full border-2 py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 flex justify-center items-center gap-3 hover:bg-[#1d1c17] hover:text-[#fef9f1] hover:border-[#1d1c17]" style={{ borderColor: theme.text, color: theme.text }}>
-                  <ArrowRight className="w-5 h-5" /> Use as Base Reference
+                  <ArrowRight className="w-5 h-5" /> Use as base
                 </button>
               </div>
             </div>
