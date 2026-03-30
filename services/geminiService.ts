@@ -1,17 +1,13 @@
 import { GoogleGenAI, Part } from "@google/genai";
-import { DesignConfig } from "../types";
+import { DesignConfig, GeminiModel } from "../types";
 
-const MODEL_NAME = 'gemini-3-pro-image-preview';
+const DEFAULT_MODEL: GeminiModel = 'gemini-2.5-flash-image';
 
-/**
- * Converts a File object to a base64 string.
- */
 const fileToPart = async (file: File): Promise<Part> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
-      // Remove data url prefix (e.g. "data:image/jpeg;base64,")
       const base64Data = base64String.split(',')[1];
       resolve({
         inlineData: {
@@ -25,71 +21,62 @@ const fileToPart = async (file: File): Promise<Part> => {
   });
 };
 
-export const generateDesign = async (config: DesignConfig): Promise<string> => {
-  // Ensure we have an API key selected (although the UI should enforce this)
-  // Ensure we have an API key selected (although the UI should enforce this)
-  // Check environment variable first
+const getApiKey = (): string => {
   const envApiKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-  if (envApiKey) {
-    // We have a key in env, proceed.
-  } else {
-    const hasKey = window.aistudio ? await window.aistudio.hasSelectedApiKey() : false;
-    if (!hasKey) {
-      throw new Error("API Key not selected. Please select an API key to proceed.");
-    }
+  if (!envApiKey) {
+    throw new Error("API Key not configured");
   }
+  return envApiKey;
+};
 
-  // Create a new instance with the injected key
-  const ai = new GoogleGenAI({ apiKey: envApiKey || undefined });
-
-  console.group("Gemini API Request Debug");
+const generateSingleImage = async (
+  config: DesignConfig,
+  model: GeminiModel,
+  prompt: string
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  
   const parts: Part[] = [];
-  console.log("Model:", MODEL_NAME);
-  console.log("Prompt:", config.prompt);
-  console.log("Reference Images Count:", config.referenceImages?.length || 0);
-
-  // Add the user's reference images if provided
+  
   if (config.referenceImages && config.referenceImages.length > 0) {
     for (const file of config.referenceImages) {
-      console.log(`Processing image: ${file.name} (${file.type}, ${file.size} bytes)`);
       const imagePart = await fileToPart(file);
       parts.push(imagePart);
     }
-  } else {
-    console.log("No reference images provided.");
   }
 
-  // Add the text prompt
-  // We enhance the prompt slightly to ensure high quality interior design results
   const enhancedPrompt = `
-    Generate a photorealistic, high-quality visualization based on the user's request.
+    Generate a photorealistic, high-quality image based on the user's request.
     
-    User Request: ${config.prompt}
+    User Request: ${prompt}
     
-    ${(config.referenceImages && config.referenceImages.length > 0) ? `CRITICAL INSTRUCTION: The user has provided ${config.referenceImages.length} reference image(s). You MUST use these images as strict visual inspiration for the layout, furniture style, and color palette. Analyze them carefully.` : ""}
+    ${(config.referenceImages && config.referenceImages.length > 0) ? `Use the provided reference images as visual inspiration for style, colors, and composition.` : ""}
     
-    The image should be professional, well-lit, and high definition.
+    The image should be professional and high definition.
   `;
 
-  console.log("Enhanced Prompt:", enhancedPrompt);
   parts.push({ text: enhancedPrompt });
-  console.groupEnd();
 
   try {
+    const requestConfig: any = {
+      // responseMimeType: "image/png", // Removed as API complains it only accepts text/json/xml/yaml
+    };
+    
+    // Pass image config - different versions of the SDK expect this differently.
+    // Try the standard way first.
+    try {
+      requestConfig.imageConfig = {
+        aspectRatio: config.aspectRatio,
+        imageSize: config.resolution,
+      };
+    } catch(e) {}
+
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: {
-        parts: parts,
-      },
-      config: {
-        imageConfig: {
-          aspectRatio: config.aspectRatio,
-          imageSize: config.resolution,
-        },
-      },
+      model: model,
+      contents: { parts },
+      config: requestConfig,
     });
 
-    // Parse the response to find the image
     let imageUrl: string | null = null;
 
     if (response.candidates && response.candidates.length > 0) {
@@ -105,13 +92,44 @@ export const generateDesign = async (config: DesignConfig): Promise<string> => {
     }
 
     if (!imageUrl) {
-      throw new Error("No image was generated. The model might have returned text instead.");
+      console.error("Response details:", JSON.stringify(response, null, 2));
+      throw new Error("No image was generated. The model may not support these exact settings.");
     }
 
     return imageUrl;
-
-  } catch (error) {
-    console.error("Gemini API Error:", error);
+  } catch (error: any) {
+    console.error("Gemini API Error details:", error);
+    // Extract the specific Google API error message if available
+    if (error.statusDetails && error.statusDetails.length > 0) {
+      throw new Error(`API Error: ${error.message} - ${JSON.stringify(error.statusDetails)}`);
+    }
     throw error;
   }
+};
+
+export const generateDesign = async (config: DesignConfig): Promise<string[]> => {
+  const model = config.model || DEFAULT_MODEL;
+  const prompts = config.batchPrompts || [config.prompt];
+  
+  console.group("Gemini API Request");
+  console.log("Model:", model);
+  console.log("Prompts:", prompts);
+  console.groupEnd();
+
+  const promises = prompts.map(p => generateSingleImage(config, model, p));
+  const results = await Promise.all(promises);
+  return results;
+};
+
+export const applyGlobalPrompt = (
+  globalPrompt: string,
+  sessionConfig: { referenceImages: File[]; aspectRatio: "16:9" | "4:3" | "1:1" | "3:4" | "9:16"; resolution: "1K" | "2K"; model: GeminiModel }
+): DesignConfig => {
+  return {
+    prompt: globalPrompt,
+    referenceImages: sessionConfig.referenceImages,
+    aspectRatio: sessionConfig.aspectRatio,
+    resolution: sessionConfig.resolution,
+    model: sessionConfig.model
+  };
 };
