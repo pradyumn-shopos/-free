@@ -609,43 +609,58 @@ const App: React.FC = () => {
 
       {/* Fullscreen Preview Modal (Light Theme Glass) */}
       {activePreviewUrl && (
-        <div className="fixed inset-0 z-[100] backdrop-blur-xl flex items-center justify-center p-4 sm:p-8" style={{ backgroundColor: 'rgba(254, 249, 241, 0.9)' }} onClick={() => setActivePreviewUrl(null)}>
-          <div className="max-w-[1600px] w-full grid grid-cols-1 lg:grid-cols-12 rounded-2xl overflow-hidden shadow-2xl border" style={{ backgroundColor: theme.surface, borderColor: theme.border }} onClick={e => e.stopPropagation()}>
+        <div 
+          className="fixed inset-0 z-[100] backdrop-blur-2xl flex items-center justify-center p-4 sm:p-8 opacity-0 animate-[fadeIn_0.3s_ease-out_forwards]" 
+          style={{ backgroundColor: 'rgba(254, 249, 241, 0.85)' }} 
+          onClick={() => setActivePreviewUrl(null)}
+        >
+          <div 
+            className="max-w-[1600px] w-full h-[90vh] grid grid-cols-1 lg:grid-cols-12 rounded-[2rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.15)] border transform scale-95 animate-[scaleIn_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]" 
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }} 
+            onClick={e => e.stopPropagation()}
+          >
             
-            <div className="lg:col-span-8 flex items-center justify-center relative p-6 bg-black/5 min-h-[50vh] max-h-[90vh]">
-              <img src={activePreviewUrl} alt="Preview" className="w-full h-full object-contain drop-shadow-xl" />
-              <button onClick={() => setActivePreviewUrl(null)} className="absolute top-6 left-6 bg-white/50 hover:bg-white p-2 rounded-full backdrop-blur-md transition-colors shadow-sm text-black z-10">
+            <div className="lg:col-span-8 flex items-center justify-center relative p-8 bg-[#f8f5f0] h-[90vh] overflow-hidden">
+              <img 
+                src={activePreviewUrl} 
+                alt="Preview" 
+                className="w-full h-full object-contain filter drop-shadow-2xl transition-transform duration-[1.5s] ease-out hover:scale-[1.02]" 
+              />
+              <button 
+                onClick={() => setActivePreviewUrl(null)} 
+                className="absolute top-8 left-8 bg-white/70 hover:bg-white p-3 rounded-full backdrop-blur-xl transition-all duration-300 shadow-md text-black hover:scale-110 hover:rotate-90 z-10"
+              >
                 <X className="w-6 h-6" />
               </button>
             </div>
             
-            <div className="lg:col-span-4 p-8 sm:p-10 flex flex-col justify-between border-l" style={{ backgroundColor: theme.bg, borderColor: theme.border }}>
-              <div className="space-y-8">
-                <div className="space-y-3">
-                  <label className="text-[0.6875rem] uppercase tracking-[0.15rem] font-bold" style={{ color: theme.primary }}>Original Directive</label>
-                  <p className="font-serif text-lg italic leading-relaxed" style={{ color: theme.text }}>
+            <div className="lg:col-span-4 p-10 flex flex-col justify-between border-l h-full overflow-y-auto" style={{ backgroundColor: theme.bg, borderColor: theme.border }}>
+              <div className="space-y-10">
+                <div className="space-y-4">
+                  <label className="text-[0.6875rem] uppercase tracking-[0.2em] font-bold" style={{ color: theme.primary }}>Original Directive</label>
+                  <p className="font-serif text-xl italic leading-relaxed" style={{ color: theme.text }}>
                     "{activePreviewPrompt}"
                   </p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-6 pt-6 border-t" style={{ borderColor: theme.border }}>
+                <div className="grid grid-cols-2 gap-8 pt-8 border-t" style={{ borderColor: theme.border }}>
                   <div>
-                    <label className="text-[0.6875rem] uppercase tracking-widest font-bold block mb-1" style={{ color: theme.muted }}>Model</label>
-                    <span className="text-sm font-bold uppercase" style={{ color: theme.text }}>{GEMINI_MODELS.find(m => m.id === model)?.name || 'Nano'}</span>
+                    <label className="text-[0.6875rem] uppercase tracking-widest font-bold block mb-2" style={{ color: theme.muted }}>Model</label>
+                    <span className="text-base font-bold uppercase tracking-wider" style={{ color: theme.text }}>{GEMINI_MODELS.find(m => m.id === model)?.name || 'Nano'}</span>
                   </div>
                   <div>
-                    <label className="text-[0.6875rem] uppercase tracking-widest font-bold block mb-1" style={{ color: theme.muted }}>Quality</label>
-                    <span className="text-sm font-bold uppercase" style={{ color: theme.text }}>{resolution}</span>
+                    <label className="text-[0.6875rem] uppercase tracking-widest font-bold block mb-2" style={{ color: theme.muted }}>Quality</label>
+                    <span className="text-base font-bold uppercase tracking-wider" style={{ color: theme.text }}>{resolution}</span>
                   </div>
                 </div>
               </div>
               
-              <div className="flex flex-col space-y-4 mt-8">
-                <button onClick={() => downloadImage(activePreviewUrl, 0)} className="w-full py-4 font-bold uppercase tracking-widest text-xs rounded-xl transition-colors shadow-md flex justify-center items-center gap-2" style={{ backgroundColor: theme.primary, color: theme.onPrimary }}>
-                  <Download className="w-4 h-4" /> Download Master
+              <div className="flex flex-col space-y-4 mt-12 pt-8 border-t" style={{ borderColor: theme.border }}>
+                <button onClick={() => downloadImage(activePreviewUrl, 0)} className="w-full py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 shadow-lg flex justify-center items-center gap-3 hover:-translate-y-1 hover:shadow-xl active:translate-y-0" style={{ backgroundColor: theme.primary, color: theme.onPrimary }}>
+                  <Download className="w-5 h-5" /> Download Master
                 </button>
-                <button onClick={() => { useAsBaseImage(activePreviewUrl); setActivePreviewUrl(null); }} className="w-full border py-4 font-bold uppercase tracking-widest text-xs rounded-xl transition-colors flex justify-center items-center gap-2 hover:bg-black/5" style={{ borderColor: theme.border, color: theme.text }}>
-                  <ArrowRight className="w-4 h-4" /> Use as Base Reference
+                <button onClick={() => { useAsBaseImage(activePreviewUrl); setActivePreviewUrl(null); }} className="w-full border-2 py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 flex justify-center items-center gap-3 hover:bg-[#1d1c17] hover:text-[#fef9f1] hover:border-[#1d1c17]" style={{ borderColor: theme.text, color: theme.text }}>
+                  <ArrowRight className="w-5 h-5" /> Use as Base Reference
                 </button>
               </div>
             </div>
