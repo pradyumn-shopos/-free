@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   
   const [generatedImageUrls, setGeneratedImageUrls] = useState<string[]>([]);
+  const [generatedImagePrompts, setGeneratedImagePrompts] = useState<string[]>([]);
   const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
   const [activePreviewPrompt, setActivePreviewPrompt] = useState<string | null>(null);
 
@@ -208,6 +209,7 @@ const App: React.FC = () => {
       }
       
       setGeneratedImageUrls(results);
+      setGeneratedImagePrompts(prompts);
       setAppState(AppState.COMPLETE);
       getHistoryItems().then(setHistoryItems);
 
@@ -221,6 +223,7 @@ const App: React.FC = () => {
   const handleReset = () => {
     setAppState(AppState.IDLE);
     setGeneratedImageUrls([]);
+    setGeneratedImagePrompts([]);
     setError(null);
   };
 
