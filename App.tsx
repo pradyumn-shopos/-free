@@ -7,7 +7,7 @@ import { saveAs } from 'file-saver';
 import { 
   Loader2, Shuffle, Image as ImageIcon, Sparkles, X, Maximize2, 
   Layers, Zap, Save, Download, ArrowRight, Menu, Check, Trash2, History,
-  Archive
+  Archive, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -28,7 +28,7 @@ const App: React.FC = () => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   
   const [generatedImageUrls, setGeneratedImageUrls] = useState<string[]>([]);
-  const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
+  const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
   const [activePreviewPrompt, setActivePreviewPrompt] = useState<string | null>(null);
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -45,6 +45,23 @@ const App: React.FC = () => {
     primaryLight: '#c9a227',
     onPrimary: '#ffffff'
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (activePreviewIndex === null) return;
+      if (e.key === 'ArrowRight' && activePreviewIndex < generatedImageUrls.length - 1) {
+        setActivePreviewIndex(prev => prev! + 1);
+        setActivePreviewPrompt(isBatchMode ? batchPrompts[activePreviewIndex + 1] : prompt);
+      } else if (e.key === 'ArrowLeft' && activePreviewIndex > 0) {
+        setActivePreviewIndex(prev => prev! - 1);
+        setActivePreviewPrompt(isBatchMode ? batchPrompts[activePreviewIndex - 1] : prompt);
+      } else if (e.key === 'Escape') {
+        setActivePreviewIndex(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activePreviewIndex, generatedImageUrls, isBatchMode, batchPrompts, prompt]);
 
   useEffect(() => {
     if (batchImages.length !== batchCount) {
@@ -127,7 +144,7 @@ const App: React.FC = () => {
       setReferenceImages(prev => [...prev, file]);
       
       // Close modal if open
-      setActivePreviewUrl(null);
+      setActivePreviewIndex(null);
       setIsHistoryOpen(false);
       
       // Scroll to top so user sees the reference was added to the sidebar
@@ -529,7 +546,7 @@ const App: React.FC = () => {
                         src={url} 
                         alt={`Generated ${idx}`} 
                         className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105 cursor-zoom-in"
-                        onClick={() => { setActivePreviewUrl(url); setActivePreviewPrompt(isBatchMode ? batchPrompts[idx] : prompt); }}
+                        onClick={() => { setActivePreviewIndex(idx); setActivePreviewPrompt(isBatchMode ? batchPrompts[idx] : prompt); }}
                       />
                     </div>
                     
@@ -586,7 +603,7 @@ const App: React.FC = () => {
                   <div className="aspect-video relative">
                     <img src={item.url} className="w-full h-full object-cover" alt="History" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                      <button onClick={() => { setActivePreviewUrl(item.url); setActivePreviewPrompt(item.prompt); setIsHistoryOpen(false); }} className="bg-white/90 hover:bg-white text-black p-2.5 rounded-full transition-colors shadow-lg">
+                      <button onClick={() => { setActivePreviewIndex(historyItems.findIndex(i => i.id === item.id)); setActivePreviewPrompt(item.prompt); setIsHistoryOpen(false); }} className="bg-white/90 hover:bg-white text-black p-2.5 rounded-full transition-colors shadow-lg">
                         <Maximize2 className="w-4 h-4" />
                       </button>
                       <button onClick={() => useAsBaseImage(item.url)} className="bg-white/90 hover:bg-white text-black p-2.5 rounded-full transition-colors shadow-lg" title="Use as Base">
@@ -608,30 +625,56 @@ const App: React.FC = () => {
       </div>
 
       {/* Fullscreen Preview Modal (Light Theme Glass) */}
-      {activePreviewUrl && (
+      {activePreviewIndex !== null && (
         <div 
           className="fixed inset-0 z-[100] backdrop-blur-2xl flex items-center justify-center p-4 sm:p-8 opacity-0 animate-[fadeIn_0.3s_ease-out_forwards]" 
           style={{ backgroundColor: 'rgba(254, 249, 241, 0.85)' }} 
-          onClick={() => setActivePreviewUrl(null)}
+          onClick={() => setActivePreviewIndex(null)}
         >
           <div 
-            className="max-w-[1600px] w-full h-[90vh] grid grid-cols-1 lg:grid-cols-12 rounded-[2rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.15)] border transform scale-95 animate-[scaleIn_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]" 
+            className="max-w-[1600px] w-full h-[90vh] grid grid-cols-1 lg:grid-cols-12 rounded-[2rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.15)] border transform scale-95 animate-[scaleIn_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards] relative" 
             style={{ backgroundColor: theme.surface, borderColor: theme.border }} 
             onClick={e => e.stopPropagation()}
           >
             
-            <div className="lg:col-span-8 flex items-center justify-center relative p-8 bg-[#f8f5f0] h-[90vh] overflow-hidden">
+            <div className="lg:col-span-8 flex items-center justify-center relative p-8 bg-[#f8f5f0] h-[90vh] overflow-hidden group">
               <img 
-                src={activePreviewUrl} 
+                src={generatedImageUrls[activePreviewIndex] || historyItems[activePreviewIndex]?.url} 
                 alt="Preview" 
                 className="w-full h-full object-contain filter drop-shadow-2xl transition-transform duration-[1.5s] ease-out hover:scale-[1.02]" 
               />
               <button 
-                onClick={() => setActivePreviewUrl(null)} 
+                onClick={() => setActivePreviewIndex(null)} 
                 className="absolute top-8 left-8 bg-white/70 hover:bg-white p-3 rounded-full backdrop-blur-xl transition-all duration-300 shadow-md text-black hover:scale-110 hover:rotate-90 z-10"
               >
                 <X className="w-6 h-6" />
               </button>
+
+              {/* Arrow Controls */}
+              {isBatchMode && activePreviewIndex > 0 && (
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setActivePreviewIndex(activePreviewIndex - 1); 
+                    setActivePreviewPrompt(batchPrompts[activePreviewIndex - 1]);
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-4 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                >
+                  <ChevronLeft className="w-8 h-8 text-black" />
+                </button>
+              )}
+              {isBatchMode && activePreviewIndex < generatedImageUrls.length - 1 && (
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setActivePreviewIndex(activePreviewIndex + 1); 
+                    setActivePreviewPrompt(batchPrompts[activePreviewIndex + 1]);
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-4 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                >
+                  <ChevronRight className="w-8 h-8 text-black" />
+                </button>
+              )}
             </div>
             
             <div className="lg:col-span-4 p-10 flex flex-col justify-between border-l h-full overflow-y-auto" style={{ backgroundColor: theme.bg, borderColor: theme.border }}>
@@ -656,10 +699,10 @@ const App: React.FC = () => {
               </div>
               
               <div className="flex flex-col space-y-4 mt-12 pt-8 border-t" style={{ borderColor: theme.border }}>
-                <button onClick={() => downloadImage(activePreviewUrl, 0)} className="w-full py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 shadow-lg flex justify-center items-center gap-3 hover:-translate-y-1 hover:shadow-xl active:translate-y-0" style={{ backgroundColor: theme.primary, color: theme.onPrimary }}>
+                <button onClick={() => downloadImage(generatedImageUrls[activePreviewIndex] || historyItems[activePreviewIndex]?.url, 0)} className="w-full py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 shadow-lg flex justify-center items-center gap-3 hover:-translate-y-1 hover:shadow-xl active:translate-y-0" style={{ backgroundColor: theme.primary, color: theme.onPrimary }}>
                   <Download className="w-5 h-5" /> Download Master
                 </button>
-                <button onClick={() => { useAsBaseImage(activePreviewUrl); setActivePreviewUrl(null); }} className="w-full border-2 py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 flex justify-center items-center gap-3 hover:bg-[#1d1c17] hover:text-[#fef9f1] hover:border-[#1d1c17]" style={{ borderColor: theme.text, color: theme.text }}>
+                <button onClick={() => { useAsBaseImage(generatedImageUrls[activePreviewIndex] || historyItems[activePreviewIndex]?.url); setActivePreviewIndex(null); }} className="w-full border-2 py-5 font-bold uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 flex justify-center items-center gap-3 hover:bg-[#1d1c17] hover:text-[#fef9f1] hover:border-[#1d1c17]" style={{ borderColor: theme.text, color: theme.text }}>
                   <ArrowRight className="w-5 h-5" /> Use as Base Reference
                 </button>
               </div>
