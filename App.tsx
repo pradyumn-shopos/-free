@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { generateDesign } from './services/geminiService';
 import { saveHistoryItem, getHistoryItems, clearHistory, HistoryItem } from './services/historyService';
 import { AppState, DesignConfig, GeminiModel, GEMINI_MODELS } from './types';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import { 
-  Loader2, Image as ImageIcon, Sparkles, X, Maximize2, 
-  Download, ArrowRight, Check, Trash2, History
+  Loader2, Shuffle, Image as ImageIcon, Sparkles, X, Maximize2, 
+  Layers, Zap, Save, Download, ArrowRight, Menu, Check, Trash2, History,
+  Archive
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -172,7 +175,7 @@ const App: React.FC = () => {
       }));
 
       for (const { prompt: p, images: imgs } of promptsWithImages) {
-        const imgConfig = { ...config, prompt: p, referenceImages: imgs };
+        const imgConfig = { ...config, prompt: p, referenceImages: imgs, batchPrompts: undefined };
         const urls = await generateDesign(imgConfig);
         
         for (const url of urls) {
@@ -202,6 +205,43 @@ const App: React.FC = () => {
     setAppState(AppState.IDLE);
     setGeneratedImageUrls([]);
     setError(null);
+  };
+
+  const downloadAll = async () => {
+    if (generatedImageUrls.length === 0) return;
+    
+    if (generatedImageUrls.length === 1) {
+      downloadImage(generatedImageUrls[0], 0);
+      return;
+    }
+
+    setAppState(AppState.GENERATING); // Re-use spinner for ZIP
+    try {
+      const zip = new JSZip();
+      
+      // Fetch all images and add to ZIP
+      for (let i = 0; i < generatedImageUrls.length; i++) {
+        const response = await fetch(generatedImageUrls[i]);
+        const blob = await response.blob();
+        
+        // Create descriptive filename from prompt
+        const promptText = generatedImagePrompts[i] || prompt;
+        const sanitizedPrompt = promptText.substring(0, 30).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        
+        const folderName = `variation_${String(i + 1).padStart(2, '0')}`;
+        zip.file(`${folderName}/image_${sanitizedPrompt}.png`, blob);
+        
+        // Also save the prompt as a text file for reference
+        zip.file(`${folderName}/prompt.txt`, promptText);
+      }
+      
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, `free-batch-${Date.now()}.zip`);
+    } catch (err) {
+      console.error('Error creating ZIP:', err);
+      setError('Failed to create ZIP file.');
+    }
+    setAppState(AppState.COMPLETE);
   };
 
   const downloadImage = (url: string, index: number) => {
@@ -474,6 +514,11 @@ const App: React.FC = () => {
             <div className="space-y-8 pt-8 border-t" style={{ borderColor: theme.border }}>
               <div className="flex justify-between items-end pb-4 border-b" style={{ borderColor: `${theme.border}80` }}>
                 <h2 className="font-serif text-2xl tracking-tight" style={{ color: theme.text }}>Recent Masterpieces</h2>
+                {isBatchMode && generatedImageUrls.length > 1 && (
+                  <button onClick={downloadAll} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1d1c17] text-[#fef9f1] text-[10px] font-bold uppercase tracking-widest hover:bg-[#ecc246] transition-colors shadow-sm">
+                    <Archive className="w-3.5 h-3.5" /> Download All (.ZIP)
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -488,8 +533,9 @@ const App: React.FC = () => {
                       />
                     </div>
                     
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
-                      <div className="flex justify-between items-center">
+                    {/* The problem: the gradient overlay was catching clicks and preventing them from reaching the image underneath. Add pointer-events-none so clicks pass through to the image */}
+                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+                      <div className="flex justify-between items-center pointer-events-auto">
                         <div className="flex space-x-2">
                           <button onClick={(e) => { e.stopPropagation(); downloadImage(url, idx); }} className="bg-white/20 backdrop-blur-sm text-white p-2.5 rounded-full hover:bg-white/40 transition-colors" title="Download">
                             <Download className="w-4 h-4" />
