@@ -7,7 +7,7 @@ import { saveAs } from 'file-saver';
 import { 
   Loader2, Shuffle, Image as ImageIcon, Sparkles, X, Maximize2, 
   Layers, Zap, Save, Download, ArrowRight, Menu, Check, Trash2, History,
-  Archive, ChevronLeft, ChevronRight
+  Archive, ChevronLeft, ChevronRight, ArrowDown
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [batchCount, setBatchCount] = useState<number>(4);
   const [batchPrompts, setBatchPrompts] = useState<string[]>(['', '', '', '']);
   const [batchImages, setBatchImages] = useState<{ prompt: string; images: File[] }[]>([]);
+  const [smartBatchText, setSmartBatchText] = useState<string>('');
   
   const [prompt, setPrompt] = useState('');
   const [referenceImages, setReferenceImages] = useState<File[]>([]);
@@ -111,13 +112,35 @@ const App: React.FC = () => {
   }, []);
 
   const handleBatchCountChange = (newCount: number) => {
-    if (newCount < 1 || newCount > 10) return;
+    if (newCount < 1 || newCount > 20) return;
     setBatchCount(newCount);
     setBatchPrompts(prev => {
       const updated = [...prev];
       while (updated.length < newCount) updated.push('');
       return updated.slice(0, newCount);
     });
+  };
+
+  const handleSmartSplit = () => {
+    if (!smartBatchText.trim()) return;
+    
+    const lines = smartBatchText.split('\n');
+    const parsedPrompts = lines
+      .map(line => line.replace(/^\s*(?:\d+[\.\)]|[-*])\s*/, '').trim())
+      .filter(line => line.length > 0);
+
+    if (parsedPrompts.length === 0) return;
+
+    const limitedPrompts = parsedPrompts.slice(0, 20);
+    
+    setBatchCount(limitedPrompts.length);
+    setBatchPrompts(prev => {
+      const newPrompts = [...limitedPrompts];
+      while (newPrompts.length < limitedPrompts.length) newPrompts.push('');
+      return newPrompts;
+    });
+    
+    setSmartBatchText('');
   };
 
   const updateBatchPrompt = (index: number, value: string) => {
@@ -513,7 +536,33 @@ const App: React.FC = () => {
           {/* Prompt Section */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {isBatchMode ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                <div className="border rounded-2xl p-6 shadow-sm relative overflow-hidden" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: theme.primary }}>Smart Batch Router (Optional)</span>
+                    <span className="text-[10px] font-bold" style={{ color: theme.muted }}>Paste a list to auto-split</span>
+                  </div>
+                  <textarea
+                    value={smartBatchText}
+                    onChange={(e) => setSmartBatchText(e.target.value)}
+                    className="w-full bg-transparent border focus:ring-0 text-sm font-serif p-4 min-h-[120px] rounded-xl resize-y leading-relaxed outline-none transition-colors"
+                    placeholder="1. A sunny beach with crystal clear water\n2. A dark rainy alleyway in cyberpunk tokyo\n3. A macro shot of a blue poison dart frog"
+                    style={{ borderColor: `${theme.border}80`, color: theme.text }}
+                  />
+                  <div className="flex justify-end mt-4">
+                    <button 
+                      type="button" 
+                      onClick={handleSmartSplit}
+                      disabled={!smartBatchText.trim()}
+                      className="px-4 py-2 rounded-lg font-bold uppercase tracking-wider text-[10px] shadow-sm transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2 active:scale-95 hover:brightness-110"
+                      style={{ backgroundColor: theme.primary, color: theme.onPrimary }}
+                    >
+                      Split & Fill Below <ArrowDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {Array(batchCount).fill(null).map((_, idx) => (
                   <div key={idx} className="border rounded-2xl p-6 transition-colors flex flex-col shadow-sm" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
                     <div className="flex justify-between items-center mb-3">
@@ -547,6 +596,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              </div>
               </div>
             ) : (
               <div className="relative">
