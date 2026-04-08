@@ -124,10 +124,33 @@ const App: React.FC = () => {
   const handleSmartSplit = () => {
     if (!smartBatchText.trim()) return;
     
-    const lines = smartBatchText.split('\n');
-    const parsedPrompts = lines
-      .map(line => line.replace(/^\s*(?:\d+[\.\)]|[-*])\s*/, '').trim())
-      .filter(line => line.length > 0);
+    let blocks = [];
+    const listStarterRegex = /(?=^\s*(?:#+\s*)?(?:\**\d+\**[\.\)]|[-*])\s)/m;
+
+    if (listStarterRegex.test(smartBatchText)) {
+      blocks = smartBatchText.split(listStarterRegex);
+    } else if (/\n\s*\n/.test(smartBatchText)) {
+      blocks = smartBatchText.split(/\n\s*\n/);
+    } else {
+      blocks = smartBatchText.split('\n');
+    }
+
+    const parsedPrompts = blocks
+      .map(block => {
+        let b = block.trim();
+        // Remove list numbering at the very beginning of the block (e.g. "### 1. ", "1. ", "- ")
+        b = b.replace(/^\s*(?:#+\s*)?(?:\**\d+\**[\.\)]|[-*])\s*/, '');
+        // Remove LLM prefix text like "> **Prompt:**" or "Prompt:" anywhere in the block
+        b = b.replace(/(?:^|\n)[>\s]*\**Prompt:\**\s*/gi, ' ');
+        // Remove LLM placeholders like "[Link to Ref Image]"
+        b = b.replace(/`?\[Link to [^\]]+\]`?\s*/gi, '');
+        // Join newlines within the same prompt so they aren't split
+        b = b.replace(/\s*\n\s*/g, ' ');
+        // Cleanup extra spaces
+        b = b.replace(/\s{2,}/g, ' ');
+        return b.trim();
+      })
+      .filter(b => b.length > 0);
 
     if (parsedPrompts.length === 0) return;
 
