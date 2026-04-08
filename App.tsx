@@ -13,6 +13,7 @@ import {
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [error, setError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const [aspectRatio, setAspectRatio] = useState<"1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "2:3">("16:9");
   const [resolution, setResolution] = useState<"1K" | "2K" | "4K">("2K");
@@ -82,6 +83,31 @@ const App: React.FC = () => {
 
   useEffect(() => {
     getHistoryItems().then(setHistoryItems);
+  }, []);
+
+  // Persist draft prompt across page refreshes
+  useEffect(() => {
+    const saved = localStorage.getItem('draft_prompt');
+    if (saved) setPrompt(saved);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('draft_prompt', prompt);
+  }, [prompt]);
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Refresh history when reconnecting — may have partial saves from before the drop
+      getHistoryItems().then(setHistoryItems);
+    };
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const handleBatchCountChange = (newCount: number) => {
@@ -176,6 +202,9 @@ const App: React.FC = () => {
     setAppState(AppState.GENERATING);
     setError(null);
 
+    // Hoist results outside try so partial batch saves are accessible on failure
+    const results: string[] = [];
+
     try {
       const config: DesignConfig = {
         prompt: prompt,
@@ -186,7 +215,6 @@ const App: React.FC = () => {
         batchPrompts: prompts
       };
 
-      const results: string[] = [];
       const promptsWithImages = prompts.map((p, i) => ({
         prompt: p,
         images: allImages[i] || []
@@ -195,7 +223,7 @@ const App: React.FC = () => {
       for (const { prompt: p, images: imgs } of promptsWithImages) {
         const imgConfig = { ...config, prompt: p, referenceImages: imgs, batchPrompts: undefined };
         const urls = await generateDesign(imgConfig);
-        
+
         for (const url of urls) {
           const item: HistoryItem = {
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -207,7 +235,7 @@ const App: React.FC = () => {
           results.push(url);
         }
       }
-      
+
       setGeneratedImageUrls(results);
       setGeneratedImagePrompts(prompts);
       setAppState(AppState.COMPLETE);
@@ -215,8 +243,19 @@ const App: React.FC = () => {
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong.");
-      setAppState(AppState.ERROR);
+      // Always refresh history — partial saves from before the failure are already in IndexedDB
+      getHistoryItems().then(setHistoryItems);
+
+      if (results.length > 0) {
+        // Show whatever was generated before the failure
+        setGeneratedImageUrls(results);
+        setGeneratedImagePrompts(prompts.slice(0, results.length));
+        setAppState(AppState.COMPLETE);
+        setError(`${results.length} of ${prompts.length} images generated. ${err.message || 'Remaining failed.'}`);
+      } else {
+        setError(err.message || "Something went wrong.");
+        setAppState(AppState.ERROR);
+      }
     }
   };
 
@@ -312,8 +351,16 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {/* Offline Banner */}
+      {!isOnline && (
+        <div className="fixed top-[72px] inset-x-0 z-30 flex items-center justify-center gap-2 py-2 text-xs font-bold uppercase tracking-widest" style={{ backgroundColor: '#1d1c17', color: '#fef9f1' }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+          You're offline — generations will resume when connection is restored. History is safe.
+        </div>
+      )}
+
       {/* Main Workspace */}
-      <main className="pt-28 pb-12 px-6 lg:px-12 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <main className={`pb-12 px-6 lg:px-12 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 ${isOnline ? 'pt-28' : 'pt-40'}`}>
         
         {/* Sidebar Controls */}
         <aside className="lg:col-span-3 space-y-10">
@@ -520,7 +567,7 @@ const App: React.FC = () => {
             <div className="flex justify-end">
               <button 
                 type="submit" 
-                disabled={appState === AppState.GENERATING || (!isBatchMode && !prompt.trim()) || (isBatchMode && !batchPrompts.some(p => p.trim()))}
+                disabled={!isOnline || appState === AppState.GENERATING || (!isBatchMode && !prompt.trim()) || (isBatchMode && !batchPrompts.some(p => p.trim()))}
                 className="px-10 py-4 rounded-full font-bold uppercase tracking-[0.2rem] text-sm shadow-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-3 active:scale-95"
                 style={{ backgroundColor: theme.primary, color: theme.onPrimary }}
               >
