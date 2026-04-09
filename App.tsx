@@ -341,7 +341,7 @@ const App: React.FC = () => {
       }
       
       const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, `free-batch-${Date.now()}.zip`);
+      saveAs(content, `shopos-batch-${Date.now()}.zip`);
     } catch (err) {
       console.error('Error creating ZIP:', err);
       setError('Failed to create ZIP file.');
@@ -352,7 +352,7 @@ const App: React.FC = () => {
   const downloadImage = (url: string, index: number) => {
     const link = document.createElement('a');
     link.href = url;
-    link.download = `free-${Date.now()}-${index + 1}.png`;
+    link.download = `shopos-${Date.now()}-${index + 1}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -382,7 +382,7 @@ const App: React.FC = () => {
       <header className="fixed top-0 z-40 w-full border-b backdrop-blur-xl" style={{ backgroundColor: `${theme.bg}e6`, borderColor: `${theme.border}80` }}>
         <div className="flex justify-between items-center w-full px-8 py-5 max-w-[1440px] mx-auto font-['Noto_Serif',_serif] antialiased tracking-tight">
           <div className="text-2xl font-serif lowercase" style={{ color: theme.text }}>
-            ✧ free
+            ✧ Way Better ShopOS
           </div>
           <div className="flex items-center space-x-6">
             <button 
@@ -562,14 +562,14 @@ const App: React.FC = () => {
               <div className="space-y-6">
                 <div className="border rounded-2xl p-6 shadow-sm relative overflow-hidden" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: theme.primary }}>Smart Batch Router (Optional)</span>
-                    <span className="text-[10px] font-bold" style={{ color: theme.muted }}>Paste a list to auto-split</span>
+                    <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: theme.primary }}>Bulk Prompt Splitter (Optional)</span>
+                    <span className="text-[10px] font-bold" style={{ color: theme.muted }}>Paste a list of prompts to instantly create multiple variations</span>
                   </div>
                   <textarea
                     value={smartBatchText}
                     onChange={(e) => setSmartBatchText(e.target.value)}
                     className="w-full bg-transparent border focus:ring-0 text-sm font-serif p-4 min-h-[120px] rounded-xl resize-y leading-relaxed outline-none transition-colors"
-                    placeholder="1. A sunny beach with crystal clear water\n2. A dark rainy alleyway in cyberpunk tokyo\n3. A macro shot of a blue poison dart frog"
+                    placeholder="1. A minimalist Tokyo home office with neon lighting\n2. A cyberpunk alleyway cafe\n3. A brutalist concrete studio"
                     style={{ borderColor: `${theme.border}80`, color: theme.text }}
                   />
                   <div className="flex justify-end mt-4">
@@ -580,7 +580,7 @@ const App: React.FC = () => {
                       className="px-4 py-2 rounded-lg font-bold uppercase tracking-wider text-[10px] shadow-sm transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2 active:scale-95 hover:brightness-110"
                       style={{ backgroundColor: theme.primary, color: theme.onPrimary }}
                     >
-                      Split & Fill Below <ArrowDown className="w-3 h-3" />
+                      Split into Variations <ArrowDown className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -595,7 +595,7 @@ const App: React.FC = () => {
                       value={batchPrompts[idx] || ''}
                       onChange={(e) => updateBatchPrompt(idx, e.target.value)}
                       className="w-full bg-transparent border-none focus:ring-0 text-lg font-serif min-h-[120px] resize-none leading-relaxed outline-none"
-                      placeholder="What's different here?"
+                      placeholder="Describe this variation..."
                       style={{ color: theme.text }}
                     />
                     
@@ -627,7 +627,7 @@ const App: React.FC = () => {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   className="w-full border focus:ring-0 text-xl md:text-2xl font-serif p-8 pb-10 min-h-[180px] rounded-2xl resize-none leading-relaxed outline-none shadow-sm transition-colors" 
-                  placeholder="What do you want to see?"
+                  placeholder="Describe your ideal workspace (e.g., A minimalist Tokyo home office with neon lighting and lots of plants)..."
                   style={{ 
                     backgroundColor: theme.surface, 
                     borderColor: prompt ? theme.primaryLight : theme.border,
@@ -644,7 +644,7 @@ const App: React.FC = () => {
                 className="px-10 py-4 rounded-full font-bold uppercase tracking-[0.2rem] text-sm shadow-xl transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-3 active:scale-95"
                 style={{ backgroundColor: theme.primary, color: theme.onPrimary }}
               >
-                {appState === AppState.GENERATING ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</> : <>Generate ✧</>}
+                {appState === AppState.GENERATING ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</> : <>{isBatchMode ? `Generate ${batchCount} Variations ✧` : 'Generate Design ✧'}</>}
               </button>
             </div>
           </form>
@@ -653,7 +653,7 @@ const App: React.FC = () => {
           {appState === AppState.COMPLETE && generatedImageUrls.length > 0 && (
             <div className="space-y-8 pt-8 border-t" style={{ borderColor: theme.border }}>
               <div className="flex justify-between items-end pb-4 border-b" style={{ borderColor: `${theme.border}80` }}>
-                <h2 className="font-serif text-2xl tracking-tight" style={{ color: theme.text }}>Your generations</h2>
+                <h2 className="font-serif text-2xl tracking-tight" style={{ color: theme.text }}>Your Design Variations</h2>
                 {isBatchMode && generatedImageUrls.length > 1 && (
                   <button onClick={downloadAll} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1d1c17] text-[#fef9f1] text-[10px] font-bold uppercase tracking-widest hover:bg-[#ecc246] transition-colors shadow-sm">
                     <Archive className="w-3.5 h-3.5" /> Download all (.ZIP)
@@ -684,9 +684,7 @@ const App: React.FC = () => {
                         <button 
                           onClick={(e) => { e.stopPropagation(); useAsBaseImage(url); }} 
                           className="bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase px-4 py-2.5 rounded-full tracking-widest hover:bg-white/40 transition-colors flex items-center gap-2 text-white border border-white/30"
-                        >
-                          Use as base
-                        </button>
+                        >Use as Reference</button>
                       </div>
                     </div>
                   </div>
@@ -706,7 +704,7 @@ const App: React.FC = () => {
             <h3 className="font-serif text-xl tracking-wide" style={{ color: theme.text }}>Library</h3>
             <div className="flex items-center gap-4">
               <button onClick={handleClearHistory} className="text-red-600 hover:text-red-800 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 transition-colors">
-                <Trash2 className="w-3.5 h-3.5" /> Clear
+                <Trash2 className="w-3.5 h-3.5" /> Clear History
               </button>
               <button onClick={() => setIsHistoryOpen(false)} className="hover:opacity-70 transition-colors" style={{ color: theme.text }}>
                 <X className="w-6 h-6" />
@@ -718,7 +716,7 @@ const App: React.FC = () => {
             {historyItems.length === 0 ? (
               <div className="text-center py-20" style={{ color: theme.muted }}>
                 <History className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                <p className="text-sm font-bold uppercase tracking-widest">Nothing here yet</p>
+                <p className="text-sm font-bold uppercase tracking-widest">Your gallery is empty</p>\n                <p className="text-xs mt-2 opacity-70">Generate your first design to see it here.</p>
               </div>
             ) : (
               historyItems.map((item) => (
