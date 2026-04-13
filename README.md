@@ -41,6 +41,7 @@ This repository includes a Model Context Protocol (MCP) server that lets Claude 
     "officeviz-ai": {
       "command": "npx",
       "args": [
+        "-y",
         "tsx",
         "/absolute/path/to/this/repository/mcp-server.ts"
       ],
