@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -123,12 +125,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`No image returned in response (finishReason: ${finishReason ?? "unknown"}).`);
     }
 
+    // Claude Desktop has a hard 1MB limit on tool responses. High-res images exceed this.
+    // Therefore, we save the image locally and return the path.
+    const outputsDir = path.join(process.cwd(), "outputs");
+    if (!fs.existsSync(outputsDir)) {
+      fs.mkdirSync(outputsDir, { recursive: true });
+    }
+
+    const filename = `design-${Date.now()}.png`;
+    const filepath = path.join(outputsDir, filename);
+    const buffer = Buffer.from(base64Data, "base64");
+    fs.writeFileSync(filepath, buffer);
+
     return {
       content: [
         {
-          type: "image",
-          data: base64Data,
-          mimeType: mimeType,
+          type: "text",
+          text: `Image successfully generated!\n\nDue to chat size limits, the image was saved locally to your machine at:\n**${filepath}**\n\n![Generated Image](file://${filepath})`,
         },
       ],
     };
