@@ -126,7 +126,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     // Claude Desktop has a hard 1MB limit on tool responses. High-res images exceed this.
-    // Therefore, we save the image locally and return the path.
+    // Therefore, we save the high-res image locally.
     const outputsDir = path.join(process.cwd(), "outputs");
     if (!fs.existsSync(outputsDir)) {
       fs.mkdirSync(outputsDir, { recursive: true });
@@ -137,11 +137,41 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const buffer = Buffer.from(base64Data, "base64");
     fs.writeFileSync(filepath, buffer);
 
+    // Compress the image using sharp to fit within the 1MB limit for the chat UI
+    let compressedBase64 = base64Data;
+    let compressedMime = mimeType;
+    try {
+      const sharp = (await import("sharp")).default;
+      const compressedBuffer = await sharp(buffer)
+        .resize({ width: 800, withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      
+      compressedBase64 = compressedBuffer.toString("base64");
+      compressedMime = "image/jpeg";
+    } catch (e) {
+      console.error("Failed to compress image:", e);
+      // Fallback to text only if compression fails or result is still too large
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Image successfully generated!\n\nDue to chat size limits, the high-resolution original was saved locally to your machine at:\n**${filepath}**`,
+          },
+        ],
+      };
+    }
+
     return {
       content: [
         {
           type: "text",
-          text: `Image successfully generated!\n\nDue to chat size limits, the image was saved locally to your machine at:\n**${filepath}**\n\n![Generated Image](file://${filepath})`,
+          text: `Image successfully generated! A compressed preview is shown below.\n\nThe high-resolution original was saved locally to your machine at:\n**${filepath}**`,
+        },
+        {
+          type: "image",
+          data: compressedBase64,
+          mimeType: compressedMime,
         },
       ],
     };
