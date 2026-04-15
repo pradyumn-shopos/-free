@@ -341,7 +341,7 @@ const App: React.FC = () => {
       }
       
       const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, `shopos-batch-${Date.now()}.zip`);
+      saveAs(content, `motif-batch-${Date.now()}.zip`);
     } catch (err) {
       console.error('Error creating ZIP:', err);
       setError('Failed to create ZIP file.');
@@ -352,7 +352,7 @@ const App: React.FC = () => {
   const downloadImage = (url: string, index: number) => {
     const link = document.createElement('a');
     link.href = url;
-    link.download = `shopos-${Date.now()}-${index + 1}.png`;
+    link.download = `motif-${Date.now()}-${index + 1}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -382,7 +382,7 @@ const App: React.FC = () => {
       <header className="fixed top-0 z-40 w-full border-b backdrop-blur-xl" style={{ backgroundColor: `${theme.bg}e6`, borderColor: `${theme.border}80` }}>
         <div className="flex justify-between items-center w-full px-8 py-5 max-w-[1440px] mx-auto font-['Noto_Serif',_serif] antialiased tracking-tight">
           <div className="text-2xl font-serif lowercase" style={{ color: theme.text }}>
-            ✧ Way Better ShopOS
+            ✧ motif
           </div>
           <div className="flex items-center space-x-6">
             <button 
